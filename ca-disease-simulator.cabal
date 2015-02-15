@@ -1,0 +1,26 @@
+name:                ca-disease-simulator
+version:             0.1.0
+synopsis:            A Cellular Automaton to simulate the spread of an infectious disease
+homepage:            https://github.com/sgillespie/ca-disease-simulator
+license:             MIT
+license-file:        LICENSE
+author:              Sean Gillespie
+maintainer:          sean@mistersg.net
+build-type:          Simple
+extra-source-files:  README.md
+cabal-version:       >=1.10
+
+library
+  hs-source-dirs:       src
+  exposed-modules:      Disease.Universe
+  default-language:     Haskell2010
+  build-depends:        base >= 4.7 && <4.8,
+                        comonad -any
+
+executable sim-disease
+  hs-source-dirs:       simulator-cli
+  main-is:              Main.hs
+  -- other-modules:
+  default-language:     Haskell2010
+  build-depends:        base >= 4.7 && <4.8,
+                        ca-disease-simulator

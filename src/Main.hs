@@ -1,0 +1,2 @@
+module null.Main where
+
