@@ -1,2 +1,0 @@
-module null.Main where
-
