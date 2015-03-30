@@ -3,49 +3,24 @@ module Disease.Universe where
 import Control.Comonad
 
 -- |We represent a 1 dimensional automaton using a doubly infinite list
+-- 1) The size of the universe
+-- 1) Current offset
 -- 1) The list to the left
 -- 2) The focused element
 -- 3) The list to the right
 --
 -- Example: [-1,-2,..] 0 [1,2,..] is the set of all integers focused at 0
-data Universe a = Universe [a] a [a]
+--
+-- Assumption: Always use infinite lists
+data Universe a = Universe Int Int [a] a [a]
                 deriving (Show)
 
-fromList :: [a] -> Universe a
-fromList (x:xs) = Universe [] x xs
+size :: Universe a -> Int
+size (Universe s _ _ _ _ ) = s
 
-instance Eq a => Eq (Universe a) where
-  u1@(Universe ll lx lr) == u2@(Universe rl rx rr) = toList u1 == toList u2
-    where toList (Universe ls x rs) = (reverse ls) ++ x:rs
+offset :: Universe a -> Int
+offset (Universe _ o _ _ _) = o
 
--- |Shift the focus left one item
-left :: Universe a -> Universe a
-left (Universe (l:ls) x rs) = Universe ls l (x:rs)
-
--- |Shift the focus right one item
--- We assume infinite lists
-right :: Universe a -> Universe a
-right (Universe ls x (r:rs)) = Universe (x:ls) r rs
-
-neighbors :: Universe a -> [a]
-neighbors (Universe [] x [])         = [x]
-neighbors (Universe (l:ls) x [])     = [l, x]
-neighbors (Universe [] x (r:rs))     = [x, r]
-neighbors (Universe (l:ls) x (r:rs)) = [l, x, r]
-
-instance Functor Universe where
-  fmap f (Universe ls x rs) = Universe (fmap f ls) (f x) (fmap f rs)
-
-instance Comonad Universe where
-  extract (Universe _ x _) = x
-
-  duplicate u = Universe (lduplicate u) u (rduplicate u)
-    where lduplicate (Universe [] _ _) = []
-          lduplicate u = (left u):(lduplicate . left $ u)
-  
-          rduplicate (Universe _ _ []) = []
-          rduplicate u = (right u):(rduplicate . right $ u)
-  
 -- |We represent a 2 dimensional automaton as a Universe of Universes
 newtype Universe2 a = Universe2 (Universe (Universe a))
                     deriving (Show)
@@ -53,8 +28,16 @@ newtype Universe2 a = Universe2 (Universe (Universe a))
 getUniverse2 :: Universe2 a -> (Universe (Universe a))
 getUniverse2 (Universe2 u) = u
 
-fromList2 :: [[a]] -> Universe2 a
-fromList2 (l:ls) = Universe2 $ Universe [] (fromList l) (fmap fromList ls)
+instance Eq a => Eq (Universe a) where
+  u1 == u2@(Universe _ _ rl rx rr) = toList u1 == toList u2
+    where toList (Universe _ _ ls x rs) = (reverse ls) ++ x:rs
+
+instance Functor Universe where
+  fmap f (Universe size offset ls x rs) = Universe size offset (fmap f ls) (f x) (fmap f rs)
+
+instance Comonad Universe where
+  extract (Universe _ _ _ x _) = x
+  duplicate u = Universe (size u) (offset u) (tail . iterate left $ u) u (tail . iterate right $ u)
 
 instance Eq a => Eq (Universe2 a) where
   a == b = getUniverse2 a == getUniverse2 b
@@ -64,24 +47,36 @@ instance Functor Universe2 where
 
 instance Comonad Universe2 where
   extract (Universe2 u) = (extract . extract) u
+  duplicate (Universe2 u) = undefined
 
-  -- Assumption: All sub-universes are the same length
-  duplicate (Universe2 u) = fmap Universe2 . Universe2 . shifted . shifted $ u
-    where shifted :: Universe (Universe a) -> Universe (Universe (Universe a))
-          shifted u = Universe (take (llen u) $ tail $ iterate (fmap left) u)
-                      u
-                      (take (rlen u) $ tail $ iterate (fmap right) u)
+fromList :: [a] -> Universe a
+fromList l@(x:xs) = Universe (length l) 0 [] x xs
 
-          llen (Universe ((Universe ls _ _):_) _ _) = length ls
-          llen _ = 0
-          
-          rlen (Universe _ _ ((Universe _ _ rs):_)) = length rs
-          rlen _ = 0
+toList :: Universe a -> [a]
+toList (Universe size offset ls x rs) = (take offset ls) ++ [x] ++ (take (size-offset-1) rs)
+
+-- |Shift the focus left one item
+left :: Universe a -> Universe a
+left (Universe size offset (l:ls) x rs) = Universe size (offset-1) ls l (x:rs)
+
+-- |Shift the focus right one item
+-- We assume infinite lists
+right :: Universe a -> Universe a
+right (Universe size offset ls x (r:rs)) = Universe size (offset+1) (x:ls) r rs
+
+neighbors :: Universe a -> [a]
+neighbors (Universe offset size (l:ls) x (r:rs))
+  | offset == 0 && size == 1 = [x]
+  | offset == 0              = [x, r]
+  | offset >= (size-1)       = [l, x]
+  | otherwise                = [l, x, r]
+
+fromList2 :: [[a]] -> Universe2 a
+fromList2 ls@(x:xs) = Universe2 $ Universe 0 (length ls) [] (fromList x) (fmap fromList xs)
 
 neighbors2 :: Universe2 a -> [a]
-neighbors2 (Universe2 u@(Universe [] x []))     = neighbors x
-neighbors2 (Universe2 u@(Universe [] x (r:rs))) = neighbors x ++ [extract r]
-neighbors2 (Universe2 u@(Universe (l:ls) x [])) = [extract l] ++ neighbors x
-neighbors2 (Universe2 u@(Universe (l:ls) x (r:rs))) =
-  [extract l] ++ neighbors x ++ [extract r]
-
+neighbors2 (Universe2 u@(Universe size offset (l:ls) x (r:rs)))
+  | offset == 0 && size == 1 = neighbors x
+  | offset == 0              = neighbors x ++ [extract r]
+  | offset >= (size-1)       = [extract l] ++ neighbors x
+  | otherwise                = [extract l] ++ neighbors x ++ [extract l]
