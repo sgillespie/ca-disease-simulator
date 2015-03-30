@@ -65,6 +65,7 @@ instance Functor Universe2 where
 instance Comonad Universe2 where
   extract (Universe2 u) = (extract . extract) u
 
+  -- Assumption: All sub-universes are the same length
   duplicate (Universe2 u) = fmap Universe2 . Universe2 . shifted . shifted $ u
     where shifted :: Universe (Universe a) -> Universe (Universe (Universe a))
           shifted u = Universe (take (llen u) $ tail $ iterate (fmap left) u)
