@@ -29,8 +29,7 @@ getUniverse2 :: Universe2 a -> (Universe (Universe a))
 getUniverse2 (Universe2 u) = u
 
 instance Eq a => Eq (Universe a) where
-  u1 == u2@(Universe _ _ rl rx rr) = toList u1 == toList u2
-    where toList (Universe _ _ ls x rs) = (reverse ls) ++ x:rs
+  u1 == u2 = toList u1 == toList u2
 
 instance Functor Universe where
   fmap f (Universe size offset ls x rs) = Universe size offset (fmap f ls) (f x) (fmap f rs)
@@ -49,11 +48,19 @@ instance Comonad Universe2 where
   extract (Universe2 u) = (extract . extract) u
   duplicate (Universe2 u) = undefined
 
-fromList :: [a] -> Universe a
-fromList l@(x:xs) = Universe (length l) 0 [] x xs
+fromList :: [a] -> a -> Universe a
+fromList l@(x:xs) n = Universe (length l) 0 (repeat n) x (xs ++ repeat n)
+
+fromList2 :: [[a]] -> a -> Universe2 a
+fromList2 ls n = Universe2 . (flip fromList $ n') . fmap (flip fromList $ n) $ ls
+  where n' = Universe 0 0 (repeat n) n (repeat n)
 
 toList :: Universe a -> [a]
-toList (Universe size offset ls x rs) = (take offset ls) ++ [x] ++ (take (size-offset-1) rs)
+toList (Universe size offset ls x rs) = ls' ++ x' ++ rs'
+  where ls' = reverse . drop (offset-size) . take offset $ ls
+        rs' = drop (-offset-1) (take (size-offset-1) rs)
+        x'  | offset < 0 || offset >= size = []
+            | otherwise = [x]
 
 -- |Shift the focus left one item
 left :: Universe a -> Universe a
@@ -65,14 +72,8 @@ right :: Universe a -> Universe a
 right (Universe size offset ls x (r:rs)) = Universe size (offset+1) (x:ls) r rs
 
 neighbors :: Universe a -> [a]
-neighbors (Universe offset size (l:ls) x (r:rs))
-  | offset == 0 && size == 1 = [x]
-  | offset == 0              = [x, r]
-  | offset >= (size-1)       = [l, x]
-  | otherwise                = [l, x, r]
-
-fromList2 :: [[a]] -> Universe2 a
-fromList2 ls@(x:xs) = Universe2 $ Universe 0 (length ls) [] (fromList x) (fmap fromList xs)
+neighbors u = map (extract . apply u) [left, id, right] 
+  where apply x f = f x
 
 neighbors2 :: Universe2 a -> [a]
 neighbors2 (Universe2 u@(Universe size offset (l:ls) x (r:rs)))

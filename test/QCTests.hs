@@ -27,9 +27,17 @@ instance (Arbitrary a) => Arbitrary (Universe2 a) where
 tests :: IO [Test]
 tests = return [testGroup "Universe tests" universeTests,
                 testGroup "Universe2 tests" universe2Tests]
-  where universeTests = [testProperty "extract equals focused element" prop_extract_id]
+  where universeTests = [testProperty "extract = focused element"  prop_extract_id,
+                         testProperty "extract . left = head ls"   prop_left_id,
+                         testProperty "left u = u"                 prop_left_eq,
+                         testProperty "extract . right = right ls" prop_right_id,
+                         testProperty "right u = u"                prop_right_eq,
+                         testProperty "fmap id u = u"              prop_fmap_id,
+                         testProperty "extract . duplicate = u"    prop_duplicate_id,
+                         testProperty "neighbors u = [left, extract, right]"
+                                                                   prop_neighbors_id]
         universe2Tests = []
-          
+
 -- -- --
 -- Universe Tests
 prop_extract_id :: Universe Integer -> Bool
@@ -52,13 +60,14 @@ prop_right_eq u@(Universe _ _ ls x rs) = (not . null) rs ==> u == right u
 prop_fmap_id :: Universe Integer -> Bool
 prop_fmap_id u = fmap id u == u
 
-prop_duplicate_eq :: Universe Integer -> Bool
-prop_duplicate_eq u = case (duplicate u) of
-  Universe _ _ ls x rs -> all (== x) (ls ++ rs)
+prop_duplicate_id :: Universe Integer -> Bool
+prop_duplicate_id u = u == (extract . duplicate) u
 
 prop_duplicate_len :: Universe Integer -> Bool
-prop_duplicate_len u@(Universe _ _ ls x rs) = case (duplicate u) of
-  Universe _ _ ls' x' rs' -> length ls' == length ls && length rs' == length rs
+prop_duplicate_len u = size u == (size . duplicate) u
+
+prop_neighbors_id :: Universe Integer -> Bool
+prop_neighbors_id u = neighbors u == map extract [left u, u, right u]
 
 prop_duplicate2_eq :: Universe2 Integer -> Bool
 prop_duplicate2_eq u = case (duplicate u) of
