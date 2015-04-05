@@ -34,9 +34,13 @@ tests = return [testGroup "Universe tests" universeTests,
                          testProperty "right u = u"                prop_right_eq,
                          testProperty "fmap id u = u"              prop_fmap_id,
                          testProperty "extract . duplicate = u"    prop_duplicate_id,
+                         testProperty "size = size . duplicate"    prop_duplicate_len,
                          testProperty "neighbors u = [left, extract, right]"
                                                                    prop_neighbors_id]
-        universe2Tests = []
+        universe2Tests = [testProperty "extract . duplicate = u"   prop_duplicate2_id,
+                          testProperty "size = size . duplicate"   prop_duplicate2_len,
+                          testProperty "neighbors u = [up, left, extract, right, down]"
+                                                                   prop_neighbors2_id]
 
 -- -- --
 -- Universe Tests
@@ -69,13 +73,16 @@ prop_duplicate_len u = size u == (size . duplicate) u
 prop_neighbors_id :: Universe Integer -> Bool
 prop_neighbors_id u = neighbors u == map extract [left u, u, right u]
 
-prop_duplicate2_eq :: Universe2 Integer -> Bool
-prop_duplicate2_eq u = case (duplicate u) of
-  Universe2 (Universe _ _ ls x rs) -> all (==x) (ls ++ rs)
+prop_duplicate2_id :: Universe2 Integer -> Bool
+prop_duplicate2_id u = size (getUniverse2 u) == (size . getUniverse2 . duplicate) u
 
 prop_duplicate2_len :: Universe2 Integer -> Bool
-prop_duplicate2_len u@(Universe2 (Universe _ _ ls x rs)) = case (getUniverse2 . duplicate $ u) of
-  Universe _ _ ls' x' rs' -> length ls' == length ls && length rs' == length rs
+prop_duplicate2_len u = (size . getUniverse2) u == (size . getUniverse2 . duplicate) u
+
+prop_neighbors2_id :: Universe2 Integer -> Bool
+prop_neighbors2_id u = neighbors2 u == [extract . extract . left . getUniverse2 $ u] ++
+                                       (neighbors . extract . getUniverse2) u ++
+                                       [extract . extract . right . getUniverse2 $ u]
 
 -- -- --
 -- CA Tests

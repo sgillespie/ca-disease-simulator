@@ -46,7 +46,7 @@ instance Functor Universe2 where
 
 instance Comonad Universe2 where
   extract (Universe2 u) = (extract . extract) u
-  duplicate (Universe2 u) = undefined
+  duplicate (Universe2 u) = fmap Universe2 . Universe2 . duplicate . duplicate $ u
 
 fromList :: [a] -> a -> Universe a
 fromList l@(x:xs) n = Universe (length l) 0 (repeat n) x (xs ++ repeat n)
@@ -73,11 +73,16 @@ right (Universe size offset ls x (r:rs)) = Universe size (offset+1) (x:ls) r rs
 
 neighbors :: Universe a -> [a]
 neighbors u = map (extract . apply u) [left, id, right] 
-  where apply x f = f x
 
 neighbors2 :: Universe2 a -> [a]
-neighbors2 (Universe2 u@(Universe size offset (l:ls) x (r:rs)))
-  | offset == 0 && size == 1 = neighbors x
-  | offset == 0              = neighbors x ++ [extract r]
-  | offset >= (size-1)       = [extract l] ++ neighbors x
-  | otherwise                = [extract l] ++ neighbors x ++ [extract l]
+neighbors2 (Universe2 u) = map (extract . apply u) [extract . left,
+                                                    left . extract,
+                                                    extract,
+                                                    right . extract,
+                                                    extract . right]
+
+-- -- --
+-- Utility functions
+-- -- --
+apply :: a -> (a -> b) -> b
+apply x f = f x
