@@ -12,10 +12,12 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:       src
-  exposed-modules:      Disease.Universe
+  exposed-modules:      Disease.Disease,
+                        Disease.Universe
   default-language:     Haskell2010
   build-depends:        base >= 4.7 && <4.8,
-                        comonad -any
+                        comonad -any,
+                        random -any
 
 executable sim-disease
   hs-source-dirs:       simulator-cli

@@ -1,13 +1,11 @@
 module QCTests (tests) where
--- TODO: Refactor and enable universe tests
--- TODO: Fix and enable universe2 tests
-
 
 import Control.Comonad
 
 import Distribution.TestSuite.QuickCheck
 import Test.QuickCheck
 
+import Disease.Disease
 import Disease.Universe
 
 instance (Arbitrary a) => Arbitrary (Universe a) where
