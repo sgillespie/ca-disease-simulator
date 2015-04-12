@@ -15,7 +15,7 @@ library
   exposed-modules:      Disease.Disease,
                         Disease.Universe
   default-language:     Haskell2010
-  build-depends:        base >= 4.7 && <4.8,
+  build-depends:        base >= 4.7 && <4.9,
                         comonad -any,
                         random -any
 
@@ -24,7 +24,7 @@ executable sim-disease
   main-is:              Main.hs
   -- other-modules:
   default-language:     Haskell2010
-  build-depends:        base >= 4.7 && <4.8,
+  build-depends:        base >= 4.7 && <4.9,
                         ca-disease-simulator
 
 test-suite qc-tests
@@ -32,10 +32,10 @@ test-suite qc-tests
   test-module:          QCTests
   hs-source-dirs:       test
   default-language:     Haskell2010
-  build-depends:        base >= 4.7 && <4.8,
+  build-depends:        base >= 4.7 && <4.9,
                         Cabal >= 1.19 && < 1.23,
                         comonad -any,
-                        QuickCheck >= 2.6 && <2.8,
+                        QuickCheck >= 2.6 && <2.9,
                         random == 1.1,
                         cabal-test-quickcheck -any,
                         ca-disease-simulator == 0.1.0
