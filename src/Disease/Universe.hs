@@ -13,7 +13,6 @@ import Control.Comonad
 --
 -- Assumption: Always use infinite lists
 data Universe a = Universe Int Int [a] a [a]
-                deriving (Show)
 
 size :: Universe a -> Int
 size (Universe s _ _ _ _ ) = s
@@ -23,13 +22,15 @@ offset (Universe _ o _ _ _) = o
 
 -- |We represent a 2 dimensional automaton as a Universe of Universes
 newtype Universe2 a = Universe2 (Universe (Universe a))
-                    deriving (Show)
 
 getUniverse2 :: Universe2 a -> (Universe (Universe a))
 getUniverse2 (Universe2 u) = u
 
 instance Eq a => Eq (Universe a) where
   u1 == u2 = toList u1 == toList u2
+
+instance Show a => Show (Universe a) where
+  show u = "fromList " ++ (show . toList $ u)
 
 instance Functor Universe where
   fmap f (Universe size offset ls x rs) = Universe size offset (fmap f ls) (f x) (fmap f rs)
@@ -39,7 +40,10 @@ instance Comonad Universe where
   duplicate u = Universe (size u) (offset u) (tail . iterate left $ u) u (tail . iterate right $ u)
 
 instance Eq a => Eq (Universe2 a) where
-  a == b = getUniverse2 a == getUniverse2 b
+  (Universe2 a) == (Universe2 b) = a == b
+
+instance Show a => Show (Universe2 a) where
+  show u = "fromList2 " ++ (show . toList2 $ u)
 
 instance Functor Universe2 where
   fmap f (Universe2 u) = Universe2 . (fmap . fmap) f $ u
@@ -61,6 +65,9 @@ toList (Universe size offset ls x rs) = ls' ++ x' ++ rs'
         rs' = drop (-offset-1) (take (size-offset-1) rs)
         x'  | offset < 0 || offset >= size = []
             | otherwise = [x]
+
+toList2 :: Universe2 a -> [[a]]
+toList2 (Universe2 u) = map toList (toList u)
 
 -- |Shift the focus left one item
 left :: Universe a -> Universe a
