@@ -50,7 +50,9 @@ instance Functor Universe2 where
 
 instance Comonad Universe2 where
   extract (Universe2 u) = (extract . extract) u
-  duplicate (Universe2 u) = fmap Universe2 . Universe2 . duplicate . duplicate $ u
+  duplicate (Universe2 u) = fmap Universe2 . Universe2 . shifted . shifted $ u
+    where shifted :: Universe (Universe a) -> Universe (Universe (Universe a))
+          shifted u' = Universe (size . extract $ u') (offset . extract $ u') (tail . iterate (fmap left) $ u') u' (tail . iterate (fmap right) $ u')
 
 fromList :: [a] -> a -> Universe a
 fromList l@(x:xs) n = Universe (length l) 0 (repeat n) x (xs ++ repeat n)
