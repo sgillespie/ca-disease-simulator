@@ -25,7 +25,9 @@ executable sim-disease
   -- other-modules:
   default-language:     Haskell2010
   build-depends:        base >= 4.7 && <4.9,
-                        ca-disease-simulator
+                        ca-disease-simulator,
+                        comonad -any,
+                        random -any		
 
 test-suite qc-tests
   type:                 detailed-0.9
