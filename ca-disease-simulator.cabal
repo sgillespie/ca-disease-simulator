@@ -27,6 +27,7 @@ executable sim-disease
   build-depends:        base >= 4.7 && <4.9,
                         ca-disease-simulator,
                         comonad -any,
+                        process -any,
                         random -any		
 
 test-suite qc-tests
