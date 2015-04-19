@@ -13,7 +13,8 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:       src
   exposed-modules:      Disease.Disease,
-                        Disease.Universe
+                        Disease.Universe,
+                        Disease.Vaccine
   default-language:     Haskell2010
   build-depends:        base >= 4.7 && <4.9,
                         comonad -any,

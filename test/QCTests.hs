@@ -1,6 +1,7 @@
 module QCTests (tests) where
 
 import Control.Comonad
+import Data.List
 import System.Random
 
 import Distribution.TestSuite.QuickCheck
@@ -8,6 +9,7 @@ import Test.QuickCheck
 
 import Disease.Disease
 import Disease.Universe
+import Disease.Vaccine
 
 instance (Arbitrary a) => Arbitrary (Universe a) where
   arbitrary = do
@@ -23,10 +25,14 @@ instance (Arbitrary a) => Arbitrary (Universe2 a) where
     x <- arbitrary
     return $ Universe2 x
 
+instance Arbitrary DiseaseCell where
+  arbitrary = elements [Alive, Immune, Infected]
+
 tests :: IO [Test]
 tests = return [testGroup "Universe tests" universeTests,
                 testGroup "Universe2 tests" universe2Tests,
-                testGroup "Disease tests" diseaseTests]
+                testGroup "Disease tests" diseaseTests,
+                testGroup "Vaccine tests" vaccineTests]
   where universeTests = [testProperty "extract = focused element"  prop_extract_id,
                          testProperty "extract . left = head ls"   prop_left_id,
                          testProperty "left u = u"                 prop_left_eq,
@@ -47,6 +53,9 @@ tests = return [testGroup "Universe tests" universeTests,
 
         diseaseTests = [testProperty "size genDisease = 1"  prop_gendisease_infected,
                         testProperty "size genDisease2 = 1" prop_gendisease2_infected]
+
+        vaccineTests = [testProperty "size infected = (size . vaccinate) infected"
+                                                            prop_vaccinate_id]
 
 -- -- --
 -- Universe Tests
@@ -129,3 +138,18 @@ prop_gendisease2_infected :: GenDisease2 -> Bool
 prop_gendisease2_infected (GenDisease2 u) = hasOne . filter hasOne . map (filter (==Infected)) $ ls
   where hasOne = (==1) . length
         ls = toList2 u
+
+-- -- --
+-- Vaccine Tests
+newtype VaccinationTest = VaccinationTest (Universe DiseaseCell)
+                        deriving (Show)
+
+instance Arbitrary VaccinationTest where
+  arbitrary = do
+    ls <- suchThat (listOf arbitrary) ((>0) . length)
+    return (VaccinationTest (fromList ls NotUsed))
+        
+prop_vaccinate_id :: VaccinationTest -> Property
+prop_vaccinate_id (VaccinationTest u) = (find (==Alive) . toList) u /= Nothing ==>
+                                        (countImmune . vaccinate $ u) == countImmune u + 1
+  where countImmune = length . filter (==Immune) . toList
