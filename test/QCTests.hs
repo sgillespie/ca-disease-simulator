@@ -108,7 +108,8 @@ instance Arbitrary GenDisease where
   arbitrary = do
     seed <- arbitrary
     size <- suchThat arbitrary (>0)
-    return . GenDisease . genDisease size . mkStdGen $ seed
+    immune <- suchThat arbitrary (\f -> f > 0 && f < 1)
+    return . GenDisease . genDisease immune size . mkStdGen $ seed
 
 newtype GenDisease2 = GenDisease2 (Universe2 DiseaseCell)
                     deriving (Eq, Show)
@@ -118,7 +119,8 @@ instance Arbitrary GenDisease2 where
     seed <- arbitrary
     cols <- suchThat arbitrary (>0)
     rows <- suchThat arbitrary (>0)
-    return . GenDisease2 . genDisease2 cols rows . mkStdGen $ seed
+    immune <- suchThat arbitrary (\f -> f > 0 && f < 1)
+    return . GenDisease2 . genDisease2 immune cols rows . mkStdGen $ seed
 
 prop_gendisease_infected :: GenDisease -> Bool
 prop_gendisease_infected (GenDisease u) = (length . filter (==Infected) . toList $ u) == 1

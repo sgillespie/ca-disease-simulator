@@ -28,23 +28,26 @@ diseaseRule2 u | extract u == Alive && any (==Infected) (neighbors2 u) = Infecte
 -- |Generate a random disease, using these rules:
 --
 --  1) Exactly 1 infected cell
---  2) Every other cell is either Alive or Immune (50/50)
-genDisease :: RandomGen g => Int -> g -> Universe DiseaseCell
-genDisease size gen = fromList (take size cells) NotUsed
+--  2) Every other cell is either Alive or Immune (90/10)
+genDisease :: RandomGen g => Float -> Int -> g -> Universe DiseaseCell
+genDisease probImmune size gen = fromList (take size cells) NotUsed
   where (infectedPos, gen') = randomR (0, size-1) gen
-        (c1, c2)            = splitAt infectedPos (randomCells gen')
+        (c1, c2)            = splitAt infectedPos (randomCells probImmune gen')
         cells               = c1 ++ [Infected] ++ c2
-        
-randomCells :: RandomGen g => g -> [DiseaseCell]
-randomCells = map toEnum . randomRs (0, 1)
+
+randomCells :: RandomGen g => Float -> g -> [DiseaseCell]
+randomCells probImmune = map toEnum' . randomRs (0, 1.0)
+  where toEnum' :: Float -> DiseaseCell
+        toEnum' n | n <= probImmune  = Immune
+        toEnum' n | otherwise = Alive
 
 -- |Generate a random disease of Universe2, using the same rules
 --  as randomDisease
-genDisease2 :: RandomGen g => Int -> Int -> g -> Universe2 DiseaseCell
-genDisease2 cols rows gen = fromList2 splitted NotUsed
+genDisease2 :: RandomGen g => Float -> Int -> Int -> g -> Universe2 DiseaseCell
+genDisease2 probImmune cols rows gen = fromList2 splitted NotUsed
   where (infectedPosX, gen')  = randomR (0, cols-1) gen
         (infectedPosY, gen'') = randomR (0, rows-1) gen'
-        cells = randomCells gen''
+        cells = randomCells probImmune gen''
         splitted = split cols rows infectedPosX infectedPosY cells
         
 

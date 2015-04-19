@@ -64,8 +64,8 @@ maybePrintUsageAndExit _      (DiseaseSettings {help=True}) = printUsageAndExit 
 maybePrintUsageAndExit _      _ = return ()
 
 newDisease :: DiseaseSettings -> IO (Universe2 DiseaseCell)
-newDisease (DiseaseSettings {rows=rows, cols=cols})
-  = liftM (genDisease2 rows cols) newStdGen
+newDisease (DiseaseSettings {rows=rows, cols=cols, percentImmune=immune})
+  = liftM (genDisease2 immune rows cols) newStdGen
 
 renderDisease :: Universe2 DiseaseCell -> String
 renderDisease = unlines . map concat . map (map renderCell) . toList2
