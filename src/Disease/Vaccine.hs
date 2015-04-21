@@ -1,6 +1,7 @@
 module Disease.Vaccine where
 
 import Control.Comonad
+import Data.List
 
 import Disease.Disease
 import Disease.Universe
@@ -22,14 +23,14 @@ vaccinate2 :: Universe2 DiseaseCell -> Universe2 DiseaseCell
 vaccinate2 u2@(Universe2 u) = center'
   where center' = center2 u2
 
-center2 :: Universe2 DiseaseCell -> Universe2 DiseaseCell
-center2 (Universe2 u) = Universe2 . center . fmap center $ u
-
 center :: Universe a -> Universe a
 center u | offset u > center' = iterate left u !! (offset u - center')
          | offset u < center' = iterate right u !! (center' - offset u)
          | otherwise = u
   where center' = floor (fromIntegral (size u) / 2.0)
+
+center2 :: Universe2 DiseaseCell -> Universe2 DiseaseCell
+center2 (Universe2 u) = Universe2 . center . fmap center $ u
 
 closestAlive :: Universe DiseaseCell -> Maybe (Universe DiseaseCell)
 closestAlive u | extract (closestAlive' (left', right')) == NotUsed = Nothing -- Can't find one
@@ -42,6 +43,24 @@ closestAlive u | extract (closestAlive' (left', right')) == NotUsed = Nothing --
                              | otherwise = if (offset u - offset l < offset r - offset u)
                                              then l
                                              else r
+
+closestAlive2 :: Universe2 DiseaseCell -> Maybe (Universe2 DiseaseCell)
+closestAlive2 u
+  | (not . null . closestAlive') (up, down, left, right) = Just . minimumBy compare' . closestAlive' $ (up, down, left, right)
+  | otherwise = Nothing
+  where (up, down, left, right) = closest2 (flip elem $ [Alive, NotUsed]) u
+
+        closestAlive' :: (Universe2 DiseaseCell,
+                          Universe2 DiseaseCell,
+                          Universe2 DiseaseCell,
+                          Universe2 DiseaseCell) -> [Universe2 DiseaseCell]
+        closestAlive' (u', d', l', r') = filter ((/=NotUsed) . extract) $ [u', d', l', r']
+        compare' a b = compare (distanceFrom u a) (distanceFrom u b)
+
+distanceFrom :: Universe2 a -> Universe2 a -> Int
+distanceFrom (Universe2 a) (Universe2 b)
+  | offset a == offset b = abs (offset (extract a) - offset (extract b))
+  | otherwise = abs (offset a - offset b)
 
 closest2 :: (a -> Bool) -> Universe2 a -> (Universe2 a, Universe2 a, Universe2 a, Universe2 a)
 closest2 test (Universe2 u@(Universe s o ls x rs)) = (Universe2 u',
