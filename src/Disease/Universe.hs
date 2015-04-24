@@ -89,6 +89,62 @@ neighbors2 (Universe2 u) = map (extract . apply u) [extract . left,
                                                     extract,
                                                     right . extract,
                                                     extract . right]
+-- |Move to the center
+center :: Universe a -> Universe a
+center u | offset u > center' = iterate left u !! (offset u - center')
+         | offset u < center' = iterate right u !! (center' - offset u)
+         | otherwise = u
+  where center' = floor ((fromIntegral (size u)) / 2.0)
+
+-- |Move to the center of a 2d universe
+center2 :: Universe2 a -> Universe2 a
+center2 (Universe2 u) = Universe2 . center . fmap center $ u
+
+moveTo :: Int -> Universe a -> Universe a
+moveTo pos u | offset u > pos = iterate left u !! (offset u - pos)
+             | otherwise = iterate right u !! (pos - offset u)
+
+moveToLeft :: Universe a -> Universe a
+moveToLeft = moveTo 0
+
+moveToRight :: Universe a -> Universe a
+moveToRight u = moveTo (size u - 1) u
+
+moveToLeft2 :: Universe2 a -> Universe2 a
+moveToLeft2 (Universe2 u) = Universe2 (fmap moveToLeft u)
+
+moveToRight2 :: Universe2 a -> Universe2 a
+moveToRight2 (Universe2 u) = Universe2 (fmap moveToRight u)
+
+moveToTop2 :: Universe2 a -> Universe2 a
+moveToTop2 (Universe2 u) = Universe2 (moveToLeft u)
+
+moveToBottom2 :: Universe2 a -> Universe2 a
+moveToBottom2 (Universe2 u) = Universe2 (moveToRight u)
+
+-- |Calculate the distance between 2 universes' focused element
+distanceFrom :: Universe a -> Universe b -> Int
+distanceFrom a b = abs $ offset a - offset b
+
+-- |Calculate the distance between 2 2d universes' focused element
+distanceFrom2 :: Universe2 a -> Universe2 b -> Int
+distanceFrom2 (Universe2 a) (Universe2 b)
+  | distanceFrom a b == 0 = distanceFrom (extract a) (extract b)
+  | otherwise = distanceFrom a b
+
+closestWith :: (a -> Bool) -> (Universe a -> Universe a)
+                           -> Universe a
+                           -> Universe a
+closestWith test f u | test (extract u) = u
+                     | otherwise = closestWith test f (f u)
+
+-- |Replace the current value with a new one
+replace :: a -> Universe a -> Universe a
+replace val (Universe s o ls x rs) = Universe s o ls val rs
+
+-- |Replace the current value -- 2d version
+replace2 :: a -> Universe2 a -> Universe2 a
+replace2 val (Universe2 u) = Universe2 . replace (replace val (extract u)) $ u
 
 -- -- --
 -- Utility functions
