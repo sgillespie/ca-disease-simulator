@@ -12,6 +12,7 @@ import System.Random
 
 import Disease.Disease
 import Disease.Universe
+import Disease.Vaccine
 
 data DiseaseSettings = DiseaseSettings
   { interactive :: Bool,        -- Whether to automatically update
@@ -79,16 +80,17 @@ main = do
   flags <- getArgs >>= parseArgs
   maybePrintUsageAndExit [] flags
   disease <- newDisease flags
-  gameLoop flags disease
+  gameLoop 0 flags disease
 
-gameLoop :: DiseaseSettings -> Universe2 DiseaseCell -> IO ()
-gameLoop settings u = do
+gameLoop :: Int -> DiseaseSettings -> Universe2 DiseaseCell -> IO ()
+gameLoop iter settings u = do
   rawSystem "clear" []
   putStrLn . renderDisease $ u
   if (interactive settings)
     then putStr "\x1b[0mPress [enter]: " >> hFlush stdout >> getLine >> return ()
-    else threadDelay (updateInterval settings) 
+    else threadDelay (updateInterval settings)
+  u' <- if (iter > 30) then return (vaccinate2 u) else return u
   if (u =>> diseaseRule2) == u
     then return ()
-    else gameLoop settings (u =>> diseaseRule2)
+    else gameLoop (iter+1) settings (u' =>> diseaseRule2)
   
