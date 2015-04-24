@@ -20,6 +20,7 @@ data DiseaseSettings = DiseaseSettings
     rows :: Int,                -- Rows of CA
     cols :: Int,                -- Columns of CA
     percentImmune :: Float,     -- Probably of each cell being immune
+    quiet :: Bool,              -- Print the grid?
     updateInterval :: Int,      -- In milliseconds
     help :: Bool                -- Show usage?
   }
@@ -31,6 +32,7 @@ defaultSettings = DiseaseSettings
     cols = 50,
     percentImmune = 0.5,
     updateInterval = 1000000,
+    quiet = False,
     help = False
   }
 
@@ -41,6 +43,7 @@ options
      Option ['c'] ["columns"] (ReqArg (\a opts -> opts { cols = read a }) "columns") "Specify the number of columns to generate",
      Option ['p'] ["immune"] (ReqArg (\a opts -> opts { percentImmune = read a }) "percent")
                              "The probability a cell has of being immune (default: 0.5)",
+     Option ['q'] ["quiet"] (NoArg (\opts -> opts { quiet = True })) "Don't print the grid",
      Option ['u'] ["update-interval"] (ReqArg (\a opts -> opts { updateInterval = (read a) * 1000000 }) "interval")
                                       "The update interval of the grid in seconds (default 1)",
      Option ['h'] ["help"] (NoArg (\opts -> opts {help = True})) "Show this message"]
@@ -67,7 +70,7 @@ maybePrintUsageAndExit _      _ = return ()
 
 newDisease :: DiseaseSettings -> IO (Universe2 DiseaseCell)
 newDisease (DiseaseSettings {rows=rows, cols=cols, percentImmune=immune})
-  = liftM (genDisease2 immune rows cols) newStdGen
+  = liftM (genDisease2 immune cols rows) newStdGen
 
 renderDisease :: Universe2 DiseaseCell -> String
 renderDisease = unlines . map concat . map (map renderCell) . toList2
@@ -85,11 +88,14 @@ main = do
 
 gameLoop :: Int -> DiseaseSettings -> Universe2 DiseaseCell -> IO ()
 gameLoop iter settings u = do
-  rawSystem "clear" []
-  putStrLn . renderDisease $ u
-  if (interactive settings)
-    then putStr "\x1b[0mPress [enter]: " >> hFlush stdout >> getLine >> return ()
-    else threadDelay (updateInterval settings)
+  if (quiet settings)
+     then return ()
+     else do
+       rawSystem "clear" []
+       putStrLn . renderDisease $ u
+       if (interactive settings)
+         then putStr "\x1b[0mPress [enter]: " >> hFlush stdout >> getLine >> return ()
+         else threadDelay (updateInterval settings)
   u' <- if (iter > 30) then return (vaccinate2 u) else return u
   if (u =>> diseaseRule2) == u
     then renderStats u
