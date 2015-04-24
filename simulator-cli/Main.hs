@@ -9,6 +9,7 @@ import System.Exit
 import System.IO
 import System.Process
 import System.Random
+import Text.Printf
 
 import Disease.Disease
 import Disease.Universe
@@ -91,6 +92,21 @@ gameLoop iter settings u = do
     else threadDelay (updateInterval settings)
   u' <- if (iter > 30) then return (vaccinate2 u) else return u
   if (u =>> diseaseRule2) == u
-    then return ()
+    then renderStats u
     else gameLoop (iter+1) settings (u' =>> diseaseRule2)
   
+renderStats :: Universe2 DiseaseCell -> IO ()
+renderStats u = do
+  let totalCells = sum . map length . toList2 $ u
+      aliveCells = sum . map length . map (filter ((flip elem) [Alive, Immune])) . toList2 $ u
+      deadCells = sum . map length . map (filter ((flip elem) [Infected])) . toList2 $ u
+      savedCells = sum . map length . map (filter (==Alive)) . toList2 $ u
+  
+  putStrLn "Final Statistics"
+  putStrLn $ printf "Total Cells: %v (100%%)" totalCells
+  putStrLn $ printf "Total Alive: %v (%v%%)" aliveCells (percent aliveCells totalCells)
+  putStrLn $ printf "Total Dead: %v (%v%%)" deadCells (percent deadCells totalCells)
+  putStrLn $ printf "Total Alive (not vaccinated): %v (%v%%)" savedCells (percent savedCells totalCells)
+
+percent :: Int -> Int -> Int
+percent v1 v2 = floor $ (fromIntegral v1) / (fromIntegral v2) * 100
